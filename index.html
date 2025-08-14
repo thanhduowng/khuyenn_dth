@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Nhắn gửi yêu thương</title>
+  <style>
+    :root{
+      --pink:#ffd9e6; --hot:#ff6b9e; --dark:#333; --card:#fff6fa; --heart:#ff7aa2; --accent:#ffa94d;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";background:var(--pink);color:var(--dark)}
+    .wrap{min-height:100svh;display:grid;place-items:center;padding:18px}
+    .card{width:min(520px,92vw);background:var(--card);border-radius:24px;box-shadow:0 8px 30px rgba(0,0,0,.08);padding:20px 18px;position:relative;overflow:hidden}
+    h1{font-size:1.4rem;margin:0 0 10px;letter-spacing:.2px}
+    .muted{opacity:.7;font-size:.9rem}
+    input[type="password"], input[type="text"]{width:100%;padding:14px 16px;border:1.5px solid #ffd0df;border-radius:14px;font-size:1rem;outline:none;background:#fff}
+    .btn{margin-top:14px;display:inline-flex;gap:.5rem;align-items:center;padding:12px 18px;border:none;border-radius:14px;background:var(--heart);color:#fff;font-weight:600;cursor:pointer;box-shadow:0 6px 16px rgba(255,122,162,.35);transition:transform .06s}
+    .btn:active{transform:translateY(1px)}
+
+    /* step containers */
+    .step{display:none}
+    .step.active{display:grid;place-items:center}
+
+    /* Bee scene (giờ chỉ làm nền) */
+    .scene{position:relative;width:min(520px,92vw);height:60vh;max-height:520px;background:var(--pink);}
+    .sun{position:absolute;right:18px;top:18px;width:96px;height:96px;background:radial-gradient(circle at 35% 35%, #ffe899 0 45%, #ffd34d 46% 100%);border-radius:50%;box-shadow:0 0 0 12px rgba(255,211,77,.35);display:grid;place-items:center;font-weight:700}
+
+    /* Envelope */
+    .envelope{position:absolute;inset:0;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .6s ease .4s}
+    .envelope.show{opacity:1;pointer-events:auto}
+    .env{width:240px;height:180px;position:relative}
+    .env .body{position:absolute;inset:0;background:#ffe5ec;border-radius:12px 12px 16px 16px;box-shadow:0 10px 20px rgba(0,0,0,.12) inset}
+    .env .flap{position:absolute;left:0;right:0;top:0;height:50%;background:linear-gradient(#ffc8dd,#ffb3c6);clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top center;border-radius:12px;transition:transform .5s}
+    .env .letter{position:absolute;left:6%;top:8%;right:6%;height:70%;background:white;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.1)}
+    .env .heart{position:absolute;left:50%;bottom:-14px;transform:translateX(-50%);width:42px;height:42px;background:var(--heart);clip-path:path("M24 7 C24 -4 7 -4 7 7 C7 12 12 16 24 26 C36 16 41 12 41 7 C41 -4 24 -4 24 7 Z");filter:drop-shadow(0 6px 14px rgba(255,122,162,.5));animation:pulse 1.2s ease-in-out infinite}
+    @keyframes pulse{ 0%,100%{transform:translateX(-50%) scale(1)} 50%{transform:translateX(-50%) scale(1.12)} }
+    .tap{margin-top:12px;font-weight:700;color:#c74c73;text-shadow:0 1px 0 #fff}
+
+    /* Letter modal */
+    dialog{border:none;border-radius:20px;padding:0;box-shadow:0 30px 60px rgba(0,0,0,.25);max-width:min(520px,92vw)}
+    .modal{background:#fff;border-radius:20px;overflow:hidden}
+    .modal header{padding:16px 18px;background:linear-gradient(90deg,#ffd9e6,#ffe9f1);font-weight:700}
+    .modal .content{padding:20px 18px;min-height:160px}
+    .modal footer{display:flex;justify-content:flex-end;padding:14px 18px;background:#fff7fb}
+    .ghost{background:#0000;border:none}
+    .x{padding:10px 14px;border-radius:12px;background:var(--heart);color:white;font-weight:700}
+
+    /* helpers */
+    .center{text-align:center}
+    .hide{display:none !important}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- STEP 1: PASSWORD CARD -->
+    <section id="step1" class="step active">
+      <div class="card">
+        <h1>💌 Chinn chào b khuyenn <3</h1>
+        <p class="muted">Nhap mat khau ne <span style="color:var(--accent)">🧡</span></p>
+        <input id="pwd" type="text" inputmode="text" placeholder="Nhập vào đây" autocomplete="off" />
+        <p class="muted">Mật khẩu phải ghi liền, không dấu*</p>
+        <button id="okBtn" class="btn">Đồng ý</button>
+        <p id="err" class="muted" style="color:#c0392b;display:none;margin-top:8px">Mật khẩu chưa đúng rồi nè 🥺</p>
+      </div>
+    </section>
+
+    <!-- STEP 2: ENVELOPE -->
+    <section id="step2" class="step">
+      <div class="scene">
+        <div class="sun"></div>
+        <div id="envWrap" class="envelope show">
+          <div class="center">
+            <div class="env" id="envBtn" role="button" tabindex="0" aria-label="Bấm để mở thư">
+              <div class="body"></div>
+              <div class="flap" id="flap"></div>
+              <div class="letter"></div>
+              <div class="heart"></div>
+            </div>
+            <div class="tap">Bấm vào trái tym</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3: LETTER (modal) -->
+    <dialog id="dlg">
+      <div class="modal">
+        <header>✉️ Gửi khuyenn siu cap de thuong,</header>
+        <div class="content" id="msg">
+          tui la duong ne
+        </div>
+        <footer>
+          <button class="ghost" onclick="dlg.close()"></button>
+          <button class="x" onclick="dlg.close()">Đóng</button>
+        </footer>
+      </div>
+    </dialog>
+
+  </div>
+  
+  <script>
+    // ======= CẤU HÌNH NHANH =======
+    const PASSWORD = "khuyenndth"; // đặt mật khẩu không dấu, liền
+    const MESSAGE = `Chinn chào khuyenn minh la duong ne \n\n
+    b có thấy đỡ hơn khongg ????\n\n
+    duong thương khuyenn lắm nma lại chẳng giúp được gì :( \n
+    mấy ngày này khuyenn nhớ uống nước ấm, chịu khó ngủ sớm nha \n nếu thấy khó chịu nói duongg nhé, duongg xoa giúp khuyenn nè`;
+    const LETTER_TITLE = "✉️ Gửi b khuyenn"; // tiêu đề trong modal
+
+    // gán nội dung động
+    document.getElementById("msg").textContent = MESSAGE;
+    document.querySelector(".modal header").textContent = LETTER_TITLE;
+
+    const step1 = document.getElementById('step1');
+    const step2 = document.getElementById('step2');
+    const ok = document.getElementById('okBtn');
+    const err = document.getElementById('err');
+    const pwd = document.getElementById('pwd');
+    const envBtn = document.getElementById('envBtn');
+    const flap = document.getElementById('flap');
+    const dlg = document.getElementById('dlg');
+
+    // tiện ích: chuẩn hóa chuỗi không dấu, thường và bỏ khoảng trắng
+    const normalize = s => s
+    .toLowerCase()
+    .normalize('NFD').replace(/\p{Diacritic}/gu, '')
+    .replace(/[ \t]+/g, ' ') // chỉ gộp khoảng trắng và tab
+    .replace(/\s+\n/g, '\n') // bỏ khoảng trắng dư trước xuống dòng
+    .trim();
+
+    console.log(normalize(MESSAGE));
+    ok.addEventListener('click', () => {
+      const okPwd = normalize(pwd.value) === normalize(PASSWORD);
+      if(!okPwd){ err.style.display='block'; return; }
+      err.style.display='none';
+      // sang bước 2 và hiện thư ngay
+      step1.classList.remove('active');
+      step1.classList.add('hide');
+      step2.classList.add('active');
+    });
+
+    // enter để xác nhận
+    pwd.addEventListener('keydown', e=>{ if(e.key==='Enter'){ ok.click(); }});
+
+    // mở thư
+    const openLetter = () => {
+      flap.style.transform = 'rotateX(150deg)';
+      setTimeout(()=> dlg.showModal(), 260);
+    }
+    envBtn.addEventListener('click', openLetter);
+    envBtn.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' '){ openLetter(); }});
+  </script>
+</body>
+</html>
